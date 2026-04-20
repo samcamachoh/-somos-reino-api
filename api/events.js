@@ -53,7 +53,7 @@ export default async function handler(req, res) {
     }
 
     events.sort((a,b) => new Date(a.day + ' ' + a.month) - new Date(b.day + ' ' + b.month));
-    res.status(200).json({ events: events.slice(0,3) });
+    res.status(200).json({ events: events.slice(0,4) });
 
   } catch (err) {
     res.status(500).json({ error: err.message });
