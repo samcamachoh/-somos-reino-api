@@ -39,6 +39,7 @@ export default async function handler(req, res) {
       };
       const summary = get('SUMMARY');
       const dtstart = get('DTSTART');
+      const location = get('LOCATION');
       if (!summary || !dtstart) continue;
       if (SKIP.some(s => summary.toLowerCase().includes(s))) continue;
       const date = parseDate(dtstart);
@@ -49,6 +50,7 @@ export default async function handler(req, res) {
         month: MONTHS_ES[date.getMonth()],
         weekday: DAYS_ES[date.getDay()],
         time: formatTime(date),
+        location: location || '2824 Michigan Ave Unit F, Kissimmee FL',
       });
     }
 
