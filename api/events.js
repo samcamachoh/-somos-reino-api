@@ -8,21 +8,19 @@ export default async function handler(req, res) {
   const DAYS_ES = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
 
   function parseDate(str) {
-    const clean = str.replace(/^[^:]+:/, '').trim();
-    if (clean.includes('T')) {
-      const y = +clean.slice(0,4);
-      const mo = +clean.slice(4,6) - 1;
-      const d = +clean.slice(6,8);
-      const h = +clean.slice(9,11);
-      const mi = +clean.slice(11,13);
-      // Times in iCal are Halifax (UTC-3), server is UTC
-      // Church Outing 7:30PM Halifax = 22:30 UTC, showing 9:30PM = off by 2hrs
-      return new Date(y, mo, d, h - 2, mi);
-    }
-    const y = +clean.slice(0,4);
+    // Handle formats like:
+    // DTSTART;TZID=America/Halifax:20260424T193000
+    // DTSTART:20260424T193000
+    // Extract just the datetime part after the last colon
+    const clean = str.split(':').pop().trim().replace(/[TZ]/g, '');
+    const y  = +clean.slice(0,4);
     const mo = +clean.slice(4,6) - 1;
-    const d = +clean.slice(6,8);
-    return new Date(y, mo, d, 0, 0);
+    const d  = +clean.slice(6,8);
+    const h  = clean.length >= 10 ? +clean.slice(8,10)  : 0;
+    const mi = clean.length >= 12 ? +clean.slice(10,12) : 0;
+    // Halifax is UTC-3, Eastern is UTC-4 (EDT) or UTC-5 (EST)
+    // Subtract 1 hour to convert Halifax → Eastern
+    return new Date(y, mo, d, h - 1, mi);
   }
 
   function formatTime(d) {
