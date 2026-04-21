@@ -8,24 +8,33 @@ export default async function handler(req, res) {
   const DAYS_ES = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
 
   function parseDate(str) {
-    // Handle formats like:
-    // DTSTART;TZID=America/Halifax:20260424T193000
-    // DTSTART:20260424T193000
-    // Extract just the datetime part after the last colon
+    // Extract datetime after last colon: handles DTSTART;TZID=America/Halifax:20260424T193000
     const clean = str.split(':').pop().trim().replace(/[TZ]/g, '');
     const y  = +clean.slice(0,4);
     const mo = +clean.slice(4,6) - 1;
     const d  = +clean.slice(6,8);
     const h  = clean.length >= 10 ? +clean.slice(8,10)  : 0;
     const mi = clean.length >= 12 ? +clean.slice(10,12) : 0;
-    // Halifax is UTC-3, Eastern is UTC-4 (EDT) or UTC-5 (EST)
-    // Subtract 1 hour to convert Halifax → Eastern
-    return new Date(y, mo, d, h - 1, mi);
+    // Vercel server is UTC. Halifax is UTC-3.
+    // 19:30 Halifax = 22:30 UTC. Server reads as 22:30 local = 9:30 PM displayed.
+    // Need Eastern (UTC-4 EDT): 22:30 UTC - 4 = 18:30 = 6:30 PM... 
+    // Actually: store as UTC then display in ET
+    const utcDate = new Date(Date.UTC(y, mo, d, h + 3, mi)); // Halifax UTC-3 → UTC
+    // Convert to Eastern Time
+    const etString = utcDate.toLocaleString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit', hour12: true });
+    // Store UTC date + ET time string for display
+    return { date: utcDate, timeStr: etString };
   }
 
   function formatTime(d) {
+    // d is now { date, timeStr } or a plain Date
+    if (d.timeStr) return d.timeStr;
     let h = d.getHours(), m = d.getMinutes(), ap = h >= 12 ? 'PM' : 'AM';
     return `${h % 12 || 12}:${String(m).padStart(2,'0')} ${ap}`;
+  }
+
+  function getDate(d) {
+    return d.date || d;
   }
 
   try {
@@ -47,14 +56,15 @@ export default async function handler(req, res) {
       const location = get('LOCATION');
       if (!summary || !dtstart) continue;
       if (SKIP.some(s => summary.toLowerCase().includes(s))) continue;
-      const date = parseDate(dtstart);
+      const parsed = parseDate(dtstart);
+      const date = getDate(parsed);
       if (isNaN(date.getTime()) || date < today) continue;
       events.push({
         title: summary,
         day: String(date.getDate()).padStart(2,'0'),
         month: MONTHS_ES[date.getMonth()],
         weekday: DAYS_ES[date.getDay()],
-        time: formatTime(date),
+        time: formatTime(parsed),
         location: location || '2824 Michigan Ave Unit F, Kissimmee FL',
       });
     }
