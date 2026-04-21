@@ -15,10 +15,9 @@ export default async function handler(req, res) {
       const d = +clean.slice(6,8);
       const h = +clean.slice(9,11);
       const mi = +clean.slice(11,13);
-      // Adjust from Halifax (UTC-3) to Eastern (UTC-5 in winter, UTC-4 in summer)
-      // Server runs in UTC, Halifax is UTC-3, so we use UTC time directly
-      const date = new Date(Date.UTC(y, mo, d, h + 3, mi));
-      return new Date(date.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+      // Times in iCal are Halifax (UTC-3), server is UTC
+      // Church Outing 7:30PM Halifax = 22:30 UTC, showing 9:30PM = off by 2hrs
+      return new Date(y, mo, d, h - 2, mi);
     }
     const y = +clean.slice(0,4);
     const mo = +clean.slice(4,6) - 1;
